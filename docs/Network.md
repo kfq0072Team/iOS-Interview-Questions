@@ -266,6 +266,73 @@ Cookie 和Session 的区别：
 
 - 最后，本地DNS服务器向域名的解析服务器发出请求，这时就能收到一个域名和IP地址对应关系，本地DNS服务器不仅要把IP地址返回给用户电脑，还要把这个对应关系保存在缓存中，以备下次别的用户查询时，可以直接返回结果，加快网络访问。
 
+## 9.AFNetworking 3.0 HTTPS CA证书验证
+设置AFN请求管理者的时候 添加 https ssl 验证。
+
+// 1.获得请求管理者
+
+AFHTTPSessionManager*manager = [AFHTTPSessionManagermanager];
+
+// 2.加上这个函数，https ssl 验证。
+
+[managersetSecurityPolicy:[selfcustomSecurityPolicy]];
+
+// https ssl 验证函数
+
+- (AFSecurityPolicy*)customSecurityPolicy {
+
+// 先导入证书 证书由服务端生成，具体由服务端人员操作
+
+NSString*cerPath = [[NSBundlemainBundle]pathForResource:@"xxx"ofType:@"cer"];//证书的路径
+
+NSData*cerData = [NSDatadataWithContentsOfFile:cerPath];
+
+// AFSSLPinningModeCertificate 使用证书验证模式
+
+AFSecurityPolicy*securityPolicy = [AFSecurityPolicypolicyWithPinningMode:AFSSLPinningModeCertificate];
+
+// allowInvalidCertificates 是否允许无效证书（也就是自建的证书），默认为NO
+
+// 如果是需要验证自建证书，需要设置为YES
+
+securityPolicy.allowInvalidCertificates=YES;
+
+//validatesDomainName 是否需要验证域名，默认为YES;
+
+//假如证书的域名与你请求的域名不一致，需把该项设置为NO；如设成NO的话，即服务器使用其他可信任机构颁发的证书，也可以建立连接，这个非常危险，建议打开。
+
+//置为NO，主要用于这种情况：客户端请求的是子域名，而证书上的是另外一个域名。因为SSL证书上的域名是独立的，假如证书上注册的域名是www.google.com，那么mail.google.com是无法验证通过的；当然，有钱可以注册通配符的域名*.google.com，但这个还是比较贵的。
+
+//如置为NO，建议自己添加对应域名的校验逻辑。
+
+securityPolicy.validatesDomainName=NO;
+
+securityPolicy.pinnedCertificates= [[NSSetalloc]initWithObjects:cerData,nilnil];
+
+returnsecurityPolicy;
+
+}
+
+三.关于证书 参考文章:http://www.2cto.com/Article/201510/444706.html
+
+服务端给的是crt后缀的证书，其中iOS客户端用到的cer证书，是需要开发人员转换：
+
+1.证书转换
+
+在服务器人员，给你发送的crt证书后，进到证书路径，执行下面语句
+
+openssl x509-in 你的证书.crt-out 你的证书.cer-outform der
+
+这样你就可以得到cer类型的证书了。双击，导入电脑。
+
+2.证书放入工程
+
+1、可以直接把转换好的cer文件拖动到工程中。
+
+2、可以在钥匙串内，找到你导入的证书，单击右键，导出项目，就可以导出.cer文件的证书了
+
+
+
 
 
 
